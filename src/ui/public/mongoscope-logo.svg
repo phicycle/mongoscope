@@ -1,0 +1,53 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base Hexagon -->
+  <path d="
+    M256 64
+    L448 160
+    L448 352
+    L256 448
+    L64 352
+    L64 160
+    Z
+  " fill="none" stroke="#00c8c8" stroke-width="16"/>
+  
+  <!-- Inner Circle -->
+  <circle cx="256" cy="256" r="120" fill="none" stroke="#00c8c8" stroke-width="12"/>
+  
+  <!-- MongoDB Leaf (Centered) -->
+  <path d="
+    M256 136
+    C256 136 230 186 230 256
+    C230 326 256 376 256 376
+    C256 376 282 326 282 256
+    C282 186 256 136 256 136
+    Z
+  " fill="#00c8c8" opacity="0.3"/>
+  
+  <!-- Scanning Line Animation -->
+  <line x1="136" y1="256" x2="376" y2="256" stroke="#00c8c8" stroke-width="4">
+    <animate 
+      attributeName="y1" 
+      values="196;316;196" 
+      dur="3s" 
+      repeatCount="indefinite"/>
+    <animate 
+      attributeName="y2" 
+      values="196;316;196" 
+      dur="3s" 
+      repeatCount="indefinite"/>
+  </line>
+  
+  <!-- Data Points -->
+  <circle cx="256" cy="196" r="8" fill="#00c8c8"/>
+  <circle cx="256" cy="316" r="8" fill="#00c8c8"/>
+  
+  <!-- Additional Tech Elements -->
+  <path d="M196 256 L236 256" stroke="#00c8c8" stroke-width="2" opacity="0.5"/>
+  <path d="M276 256 L316 256" stroke="#00c8c8" stroke-width="2" opacity="0.5"/>
+  
+  <!-- Corner Accents -->
+  <circle cx="448" cy="160" r="8" fill="#00c8c8" opacity="0.5"/>
+  <circle cx="448" cy="352" r="8" fill="#00c8c8" opacity="0.5"/>
+  <circle cx="64" cy="160" r="8" fill="#00c8c8" opacity="0.5"/>
+  <circle cx="64" cy="352" r="8" fill="#00c8c8" opacity="0.5"/>
+</svg>

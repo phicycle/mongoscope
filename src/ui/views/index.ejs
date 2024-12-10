@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MongoScope</title>
+    <script src="/htmx/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card-header">
+            <img src="/mongoscope-logo.svg" alt="MongoScope Logo" class="logo">
+            <h1>MongoScope</h1>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="stats-card collection-selector-card">
+                <div class="card-header">
+                    <h3 class="card-title">Collection Selection</h3>
+                </div>
+                <div class="collection-selector">
+                    <div class="selected-collection" id="selected-collection" onclick="toggleCollectionList()">
+                        <span>Select a collection...</span>
+                        <button class="toggle-btn" id="toggle-collections">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="collection-dropdown" id="collection-dropdown" style="display: none;">
+                        <div class="search-wrapper">
+                            <input 
+                                type="text" 
+                                id="collection-search" 
+                                placeholder="Search collections..."
+                                class="search-input"
+                                autocomplete="off"
+                            >
+                            <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                        </div>
+                        <div class="collections-wrapper">
+                            <div class="collections-list" id="collections-list">
+                                <% collections.forEach(collection => { %>
+                                    <button 
+                                        class="collection-item"
+                                        data-collection="<%= collection.name %>"
+                                        onclick="selectCollection(this)"
+                                    >
+                                        <span class="collection-name"><%= collection.name %></span>
+                                    </button>
+                                <% }); %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading htmx-indicator">
+            <span>Loading...</span>
+        </div>
+
+        <div id="collection-details" class="skeleton"></div>
+    </div>
+
+    <script>
+        let allCollections = <%- JSON.stringify(collections) %>;
+        
+        function toggleCollectionList() {
+            const dropdown = document.getElementById('collection-dropdown');
+            const toggleBtn = document.getElementById('toggle-collections');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            toggleBtn.classList.toggle('expanded');
+        }
+        
+        function selectCollection(button) {
+            const collectionName = button.dataset.collection;
+            
+            // Update selected collection display
+            const selectedDisplay = document.getElementById('selected-collection');
+            selectedDisplay.innerHTML = `
+                <span>${collectionName}</span>
+                <button class="toggle-btn" id="toggle-collections">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+                    </svg>
+                </button>
+            `;
+            
+            // Close dropdown
+            document.getElementById('collection-dropdown').style.display = 'none';
+            document.getElementById('toggle-collections').classList.remove('expanded');
+            
+            // Load collection details using the existing endpoint
+            htmx.ajax('GET', `/collection-selected?collection=${encodeURIComponent(collectionName)}`, {
+                target: '#collection-details',
+                swap: 'innerHTML',
+                indicator: '.loading'
+            });
+        }
+
+        // Optional: Collection search functionality
+        function filterCollections(searchTerm) {
+            const searchLower = searchTerm.toLowerCase();
+            document.querySelectorAll('.collection-item').forEach(item => {
+                const name = item.querySelector('.collection-name').textContent.toLowerCase();
+                item.style.display = name.includes(searchLower) ? 'flex' : 'none';
+            });
+        }
+
+        document.getElementById('collection-search').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const list = document.getElementById('collections-list');
+            
+            // Filter collections
+            const filteredCollections = allCollections
+                .filter(collection => collection.name.toLowerCase().includes(searchTerm));
+                
+            // Update list
+            list.innerHTML = filteredCollections.map(collection => `
+                <button 
+                    class="collection-item"
+                    data-collection="${collection.name}"
+                    onclick="selectCollection(this)"
+                >
+                    <span class="collection-name">${collection.name}</span>
+                    <span class="collection-size">${collection.size ? (collection.size / 1024 / 1024).toFixed(1) + ' MB' : ''}</span>
+                </button>
+            `).join('');
+        });
+    </script>
+</body>
+</html>

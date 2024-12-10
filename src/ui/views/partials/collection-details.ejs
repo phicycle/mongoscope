@@ -1,0 +1,261 @@
+<!-- Stats Section -->
+<div class="stats-card">
+  <div class="card-header">
+    <h3 class="card-title">Collection Stats</h3>
+  </div>
+  <div class="stats-grid">
+    <div class="metric-card">
+      <div class="metric-value"><%= stats.count.toLocaleString() %></div>
+      <div class="metric-label">Documents</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value"><%= (stats.size / 1024 / 1024).toFixed(2) %></div>
+      <div class="metric-label">Size (MB)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value"><%= stats.avgObjSize %></div>
+      <div class="metric-label">Avg Doc Size (bytes)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value"><%= stats.nindexes %></div>
+      <div class="metric-label">Indexes</div>
+    </div>
+  </div>
+</div>
+
+<!-- Date Range Section -->
+<div class="date-control-card">
+  <div class="card-header">
+    <h3 class="card-title">Date Range</h3>
+  </div>
+  
+  <div class="date-controls">
+    <!-- Preset Buttons -->
+    <div class="date-presets">
+      <button 
+        class="date-preset-btn <%= timeframe === 'today' ? 'active' : '' %>"
+        hx-get="/update-date-range/<%= collection %>"
+        hx-target="#timeseries-chart, #distribution-chart, #advanced-analytics-content"
+        hx-vals='{"preset": "today", "timeframe": "today"}'
+        hx-swap="innerHTML"
+        onclick="updateSelectedButton(this)"
+      >Today</button>
+      <button 
+        class="date-preset-btn <%= timeframe === 'week' ? 'active' : '' %>"
+        hx-get="/update-date-range/<%= collection %>"
+        hx-target="#timeseries-chart, #distribution-chart, #advanced-analytics-content"
+        hx-vals='{"preset": "week", "timeframe": "week"}'
+        hx-swap="innerHTML"
+        onclick="updateSelectedButton(this)"
+      >Last Week</button>
+      <button 
+        class="date-preset-btn <%= timeframe === 'month' ? 'active' : '' %>"
+        hx-get="/update-date-range/<%= collection %>"
+        hx-target="#timeseries-chart, #distribution-chart, #advanced-analytics-content"
+        hx-vals='{"preset": "month", "timeframe": "month"}'
+        hx-swap="innerHTML"
+        onclick="updateSelectedButton(this)"
+      >Last Month</button>
+      <button 
+        class="date-preset-btn <%= timeframe === 'year' ? 'active' : '' %>"
+        hx-get="/update-date-range/<%= collection %>"
+        hx-target="#timeseries-chart, #distribution-chart, #advanced-analytics-content"
+        hx-vals='{"preset": "year", "timeframe": "year"}'
+        hx-swap="innerHTML"
+        onclick="updateSelectedButton(this)"
+      >Last Year</button>
+    </div>
+
+    <!-- Custom Date Inputs -->
+    <div class="date-range-inputs">
+      <input 
+        class="date-input <%= timeframe === 'custom' ? 'active' : '' %>"
+        type="date" 
+        name="startDate"
+        value="<%= startDate %>"
+        hx-get="/update-date-range/<%= collection %>"
+        hx-target="#timeseries-chart, #distribution-chart, #advanced-analytics-content"
+        hx-trigger="change"
+        hx-include="[name='endDate']"
+        hx-vals='{"timeframe": "custom"}'
+        hx-swap="innerHTML"
+        onchange="updateSelectedInput(this)"
+      >
+      <input 
+        class="date-input <%= timeframe === 'custom' ? 'active' : '' %>"
+        type="date" 
+        name="endDate"
+        value="<%= endDate %>"
+        hx-get="/update-date-range/<%= collection %>"
+        hx-target="#timeseries-chart, #distribution-chart, #advanced-analytics-content"
+        hx-trigger="change"
+        hx-include="[name='startDate']"
+        hx-vals='{"timeframe": "custom"}'
+        hx-swap="innerHTML"
+        onchange="updateSelectedInput(this)"
+      >
+    </div>
+  </div>
+</div>
+
+<!-- Analytics Content Container -->
+<div id="analytics-content">
+  <%- include('analytics-content', { collection, fields, startDate, endDate, timeframe }) %>
+</div>
+
+<script>
+  // Initialize variables from EJS template
+  let currentStartDate = '<%= startDate %>';
+  let currentEndDate = '<%= endDate %>';
+  let currentTimeframe = '<%= timeframe %>';
+
+  function updateSelectedButton(button) {
+    document.querySelectorAll('.date-preset-btn, .date-input').forEach(el => {
+      el.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    // Get the selected timeframe from the button's hx-vals
+    const timeframe = JSON.parse(button.getAttribute('hx-vals')).timeframe;
+    currentTimeframe = timeframe;
+    
+    // Update the date inputs based on the timeframe
+    const dates = calculateDateRange(timeframe);
+    currentStartDate = dates.startDate;
+    currentEndDate = dates.endDate;
+    
+    document.querySelector('[name="startDate"]').value = currentStartDate;
+    document.querySelector('[name="endDate"]').value = currentEndDate;
+    
+    // Trigger updates for active charts with new dates
+    updateActiveCharts(currentStartDate, currentEndDate);
+  }
+
+  function updateSelectedInput(input) {
+    document.querySelectorAll('.date-preset-btn, .date-input').forEach(el => {
+      el.classList.remove('active');
+    });
+    document.querySelectorAll('.date-input').forEach(el => {
+      el.classList.add('active');
+    });
+    
+    // Update current dates from inputs
+    currentStartDate = document.querySelector('[name="startDate"]').value;
+    currentEndDate = document.querySelector('[name="endDate"]').value;
+    currentTimeframe = 'custom';
+    
+    // Trigger updates for active charts with current dates
+    updateActiveCharts(currentStartDate, currentEndDate);
+  }
+
+  function updateActiveCharts(startDate, endDate) {
+    // Update distribution if field is selected
+    const fieldSelect = document.getElementById('field-select');
+    if (fieldSelect && fieldSelect.value) {
+      const url = `/distribution/<%= collection %>?field=${fieldSelect.value}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&timeframe=${currentTimeframe}`;
+      htmx.ajax('GET', url, {
+        target: '#distribution-chart',
+        swap: 'innerHTML'
+      });
+    }
+
+    // Update advanced analytics if field is selected
+    const advancedField = document.getElementById('advanced-field-select');
+    const analysisType = document.getElementById('analysisType');
+    if (advancedField && advancedField.value && analysisType) {
+      const url = `/advanced-analytics/<%= collection %>?advancedField=${advancedField.value}&analysisType=${analysisType.value}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&timeframe=${currentTimeframe}`;
+      htmx.ajax('GET', url, {
+        target: '#advanced-analytics-content',
+        swap: 'innerHTML'
+      });
+    }
+  }
+
+  function calculateDateRange(timeframe) {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = new Date();
+
+    switch(timeframe) {
+      case 'today':
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        break;
+      case 'week':
+        startDate = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case 'month':
+        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      case 'year':
+        startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+    }
+
+    // Format dates as YYYY-MM-DD
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  }
+
+  // Store field selection when it changes
+  document.addEventListener('DOMContentLoaded', function() {
+    const fieldSelect = document.getElementById('field-select');
+    if (fieldSelect) {
+      fieldSelect.addEventListener('change', function(evt) {
+        localStorage.setItem('selectedField', evt.target.value);
+        // Trigger immediate update for the distribution with current dates
+        const url = `/distribution/<%= collection %>?field=${evt.target.value}&startDate=${encodeURIComponent(currentStartDate)}&endDate=${encodeURIComponent(currentEndDate)}&timeframe=${currentTimeframe}`;
+        htmx.ajax('GET', url, {
+          target: '#distribution-chart',
+          swap: 'innerHTML'
+        });
+      });
+    }
+  });
+
+  // HTMX event handlers
+  document.addEventListener('htmx:beforeRequest', function(evt) {
+    const targetAttr = evt.detail.elt.getAttribute('hx-target');
+    if (!targetAttr) return;
+
+    const targets = targetAttr.split(',');
+    for (const target of targets) {
+      const targetEl = document.querySelector(target.trim());
+      if (!targetEl) {
+        console.warn(`Target element ${target} not found, creating it`);
+        const div = document.createElement('div');
+        div.id = target.trim().substring(1); // Remove the # from the ID
+        document.getElementById('analytics-content').appendChild(div);
+      }
+    }
+  });
+
+  document.addEventListener('htmx:beforeSwap', function(evt) {
+    if (!evt.detail.target) return;
+    
+    if (!document.getElementById(evt.detail.target.id)) {
+      console.warn('Target element not found during swap, preventing swap');
+      evt.preventDefault();
+    }
+  });
+
+  // Restore field selection on page load
+  document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'analytics-content') {
+      const fieldSelect = document.getElementById('field-select');
+      const selectedField = localStorage.getItem('selectedField');
+      if (selectedField && fieldSelect) {
+        fieldSelect.value = selectedField;
+        // Trigger the distribution update if a field was selected
+        if (selectedField !== '') {
+          const url = `/distribution/<%= collection %>?field=${selectedField}&startDate=${encodeURIComponent(currentStartDate)}&endDate=${encodeURIComponent(currentEndDate)}&timeframe=${currentTimeframe}`;
+          htmx.ajax('GET', url, {
+            target: '#distribution-chart',
+            swap: 'innerHTML'
+          });
+        }
+      }
+    }
+  });
+</script>

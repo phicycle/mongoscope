@@ -1,0 +1,95 @@
+<div class="chart-container">
+  <canvas id="distributionChart"></canvas>
+</div>
+<script>
+  (() => {
+    const existingChart = Chart.getChart("distributionChart");
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    setTimeout(() => {
+      new Chart(document.getElementById('distributionChart'), {
+          type: 'bar',
+          data: {
+              labels: <%- JSON.stringify(data.map(d => d._id.toString())) %>,
+              datasets: [{
+                  label: '<%= field %> Distribution',
+                  data: <%- JSON.stringify(data.map(d => d.count)) %>,
+                  backgroundColor: '#00ffff',
+                  borderColor: '#00ffff',
+                  borderWidth: 1,
+                  borderRadius: 4
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: {
+                duration: 300
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    color: '#ffffff',
+                    font: {
+                      family: 'var(--font-mono)',
+                      size: 14,
+                      weight: 'bold'
+                    }
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  borderColor: '#00ffff',
+                  borderWidth: 1,
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  titleFont: {
+                    family: 'var(--font-mono)',
+                    size: 14,
+                    weight: 'bold'
+                  },
+                  bodyFont: {
+                    family: 'var(--font-mono)',
+                    size: 13
+                  },
+                  padding: 12,
+                  cornerRadius: 4
+                }
+              },
+              scales: {
+                x: {
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    lineWidth: 1
+                  },
+                  ticks: {
+                    color: '#ffffff',
+                    font: {
+                      family: 'var(--font-mono)',
+                      size: 12,
+                      weight: 'bold'
+                    }
+                  }
+                },
+                y: {
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    lineWidth: 1
+                  },
+                  ticks: {
+                    color: '#ffffff',
+                    font: {
+                      family: 'var(--font-mono)',
+                      size: 12,
+                      weight: 'bold'
+                    }
+                  }
+                }
+              }
+          }
+      });
+    }, 0);
+  })();
+</script>

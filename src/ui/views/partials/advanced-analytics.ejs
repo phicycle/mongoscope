@@ -1,0 +1,589 @@
+<% if (data && data.error) { %>
+  <div class="metric-card error">
+    <div class="metric-value">
+      <svg class="error-icon" viewBox="0 0 24 24" width="24" height="24">
+        <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>
+    </div>
+    <div class="metric-label"><%= data.error %></div>
+  </div>
+<% } else if (analysisType === 'percentiles') { %>
+  <div class="metric-grid">
+    <% if (data) { %>
+      <% Object.entries(data).forEach(([key, value]) => { %>
+        <div class="metric-card">
+          <div class="metric-value">
+            <%= value !== null && !isNaN(value) ? value.toFixed(2) : '-' %>
+          </div>
+          <div class="metric-label"><%= key.toUpperCase() %></div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="metric-card">
+        <div class="metric-value">-</div>
+        <div class="metric-label">No data available</div>
+      </div>
+    <% } %>
+  </div>
+<% } else if (analysisType === 'correlation') { %>
+  <% if (data && typeof data.correlation === 'number') { %>
+    <div class="metric-card">
+      <div class="metric-value"><%= (data.correlation * 100).toFixed(2) %>%</div>
+      <div class="metric-label">Correlation between <%= field %> and <%= secondaryField %></div>
+    </div>
+  <% } else { %>
+    <div class="metric-card">
+      <div class="metric-value">-</div>
+      <div class="metric-label">Please select both fields for correlation analysis</div>
+    </div>
+  <% } %>
+<% } else if (analysisType === 'quality') { %>
+  <div class="metric-grid">
+    <% if (data && data.completeness) { %>
+      <!-- Completeness -->
+      <div class="metric-card">
+        <div class="metric-value <%= data.completeness.fillRate >= 90 ? 'good' : data.completeness.fillRate >= 70 ? 'warning' : 'poor' %>">
+          <%= data.completeness.fillRate.toFixed(1) %>%
+        </div>
+        <div class="metric-label">Completeness</div>
+        <div class="metric-details">
+          <%= data.completeness.totalMissing %> missing values
+        </div>
+      </div>
+
+      <!-- Validity -->
+      <div class="metric-card">
+        <div class="metric-value <%= data.validity.validRate >= 90 ? 'good' : data.validity.validRate >= 70 ? 'warning' : 'poor' %>">
+          <%= data.validity.validRate.toFixed(1) %>%
+        </div>
+        <div class="metric-label">Type Consistency</div>
+        <div class="metric-details">
+          Expected type: <%= data.validity.expectedType %>
+          <br>
+          <%= data.validity.validCount %> matching values
+        </div>
+        <% if (data.validity.typeDistribution) { %>
+          <div class="type-distribution">
+            <% Object.entries(data.validity.typeDistribution).forEach(([type, count]) => { %>
+              <div class="type-item">
+                <%= type.replace('Count', '') %>: <%= count %>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Uniqueness -->
+      <div class="metric-card">
+        <div class="metric-value <%= data.uniqueness.uniquenessRate >= 90 ? 'good' : data.uniqueness.uniquenessRate >= 70 ? 'warning' : 'poor' %>">
+          <%= data.uniqueness.uniquenessRate.toFixed(1) %>%
+        </div>
+        <div class="metric-label">Uniqueness</div>
+        <div class="metric-details">
+          <%= data.uniqueness.distinctCount %> distinct values
+        </div>
+      </div>
+
+      <!-- Total Records -->
+      <div class="metric-card">
+        <div class="metric-value">
+          <%= data.totalRecords.toLocaleString() %>
+        </div>
+        <div class="metric-label">Total Records</div>
+      </div>
+    <% } else { %>
+      <div class="metric-card">
+        <div class="metric-value">-</div>
+        <div class="metric-label">No data quality information available</div>
+      </div>
+    <% } %>
+  </div>
+<% } else if (analysisType === 'growth') { %>
+  <% if (data && Array.isArray(data) && data.length > 0) { %>
+    <div class="chart-container">
+      <canvas id="growthChart"></canvas>
+    </div>
+    <script>
+      (() => {
+        const existingChart = Chart.getChart("growthChart");
+        if (existingChart) {
+          existingChart.destroy();
+        }
+
+        const chartData = <%- JSON.stringify(data) %>;
+        
+        new Chart(document.getElementById('growthChart'), {
+          type: 'line',
+          data: {
+            labels: chartData.map(d => `${d.period.year}-${d.period.month}`),
+            datasets: [{
+              label: 'Growth Rate (%)',
+              data: chartData.map(d => typeof d.growthRate === 'number' ? d.growthRate : null),
+              borderColor: '#00ffff',
+              backgroundColor: 'rgba(0, 255, 255, 0.2)',
+              borderWidth: 3,
+              tension: 0.1,
+              fill: true,
+              pointBackgroundColor: '#00ffff',
+              pointBorderColor: '#00ffff',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#ffffff',
+                  font: {
+                    family: 'var(--font-mono)',
+                    size: 14,
+                    weight: 'bold'
+                  }
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                borderColor: '#00ffff',
+                borderWidth: 1,
+                titleColor: '#ffffff',
+                bodyColor: '#ffffff',
+                titleFont: {
+                  family: 'var(--font-mono)',
+                  size: 14,
+                  weight: 'bold'
+                },
+                bodyFont: {
+                  family: 'var(--font-mono)',
+                  size: 13
+                },
+                padding: 12,
+                cornerRadius: 4
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)',
+                  lineWidth: 1
+                },
+                ticks: {
+                  color: '#ffffff',
+                  font: {
+                    family: 'var(--font-mono)',
+                    size: 12,
+                    weight: 'bold'
+                  }
+                }
+              },
+              y: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)',
+                  lineWidth: 1
+                },
+                ticks: {
+                  color: '#ffffff',
+                  font: {
+                    family: 'var(--font-mono)',
+                    size: 12,
+                    weight: 'bold'
+                  }
+                }
+              }
+            }
+          }
+        });
+      })();
+    </script>
+  <% } else { %>
+    <div class="metric-card">
+      <div class="metric-value">-</div>
+      <div class="metric-label">No growth data available</div>
+    </div>
+  <% } %>
+<% } else if (analysisType === 'temporal') { %>
+  <% if (data) { %>
+    <div class="temporal-analysis">
+      <!-- Day of Week Distribution -->
+      <div class="temporal-chart">
+        <h4>Day of Week Distribution</h4>
+        <canvas id="dayOfWeekChart"></canvas>
+      </div>
+
+      <!-- Hour of Day Distribution -->
+      <div class="temporal-chart">
+        <h4>Hour Distribution</h4>
+        <canvas id="hourOfDayChart"></canvas>
+      </div>
+
+      <!-- Monthly Distribution -->
+      <div class="temporal-chart">
+        <h4>Monthly Distribution</h4>
+        <canvas id="monthlyChart"></canvas>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        // Configure Chart.js defaults for dark theme
+        Chart.defaults.color = '#ffffff';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayData = Array(7).fill(0);
+        const chartData = <%- JSON.stringify(data) %>;
+
+        chartData.dayOfWeek.forEach(function(dayItem) {
+          dayData[dayItem._id - 1] = dayItem.count;
+        });
+
+        new Chart(document.getElementById('dayOfWeekChart'), {
+          type: 'bar',
+          data: {
+            labels: dayNames,
+            datasets: [{
+              label: 'Count',
+              data: dayData,
+              backgroundColor: 'rgba(0, 200, 200, 0.5)',
+              borderColor: 'rgba(0, 200, 200, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            }
+          }
+        });
+
+        const hourData = Array(24).fill(0);
+        chartData.hourOfDay.forEach(function(hourItem) {
+          hourData[hourItem._id] = hourItem.count;
+        });
+
+        new Chart(document.getElementById('hourOfDayChart'), {
+          type: 'line',
+          data: {
+            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            datasets: [{
+              label: 'Count',
+              data: hourData,
+              borderColor: 'rgba(0, 200, 200, 1)',
+              backgroundColor: 'rgba(0, 200, 200, 0.2)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            }
+          }
+        });
+
+        const monthlyData = chartData.monthlyDistribution;
+        new Chart(document.getElementById('monthlyChart'), {
+          type: 'bar',
+          data: {
+            labels: monthlyData.map(d => `${d._id.year}-${d._id.month}`),
+            datasets: [{
+              label: 'Count',
+              data: monthlyData.map(d => d.count),
+              backgroundColor: 'rgba(0, 200, 200, 0.5)',
+              borderColor: 'rgba(0, 200, 200, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            }
+          }
+        });
+      })();
+    </script>
+  <% } else { %>
+    <div class="metric-card">
+      <div class="metric-value">-</div>
+      <div class="metric-label">No temporal data available</div>
+    </div>
+  <% } %>
+<% } else if (analysisType === 'outliers') { %>
+  <% if (data && data.stats) { %>
+    <div class="outliers-analysis">
+      <!-- Summary Statistics -->
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-value"><%= data.stats.avg.toFixed(2) %></div>
+          <div class="metric-label">Average</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value"><%= data.stats.stdDev.toFixed(2) %></div>
+          <div class="metric-label">Standard Deviation</div>
+        </div>
+      </div>
+
+      <!-- Outliers Distribution Chart -->
+      <div class="temporal-chart">
+        <h4>Value Distribution with Outliers</h4>
+        <canvas id="outliersChart"></canvas>
+      </div>
+
+      <!-- Outliers List -->
+      <% if (data.outliers && data.outliers.length > 0) { %>
+        <div class="outliers-list">
+          <h4>Detected Outliers</h4>
+          <div class="outliers-grid">
+            <% data.outliers.slice(0, 10).forEach(value => { %>
+              <div class="metric-card">
+                <div class="metric-value"><%= value.toFixed(2) %></div>
+                <div class="metric-label">
+                  Deviates <%= ((Math.abs(value - data.stats.avg) / data.stats.stdDev).toFixed(1)) %>σ
+                </div>
+              </div>
+            <% }); %>
+          </div>
+          <% if (data.outliers.length > 10) { %>
+            <div class="metric-details text-center">
+              And <%= data.outliers.length - 10 %> more outliers...
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
+        <div class="metric-card">
+          <div class="metric-value">0</div>
+          <div class="metric-label">No outliers detected</div>
+        </div>
+      <% } %>
+    </div>
+
+    <script>
+      (() => {
+        // Configure Chart.js defaults for dark theme
+        Chart.defaults.color = '#ffffff';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        
+        const outliers = <%- JSON.stringify(data.outliers || []) %>;
+        const avg = <%= data.stats.avg %>;
+        const stdDev = <%= data.stats.stdDev %>;
+
+        // Calculate threshold lines
+        const upperThreshold = avg + (3 * stdDev);
+        const lowerThreshold = avg - (3 * stdDev);
+
+        new Chart(document.getElementById('outliersChart'), {
+          type: 'scatter',
+          data: {
+            datasets: [{
+              label: 'Values',
+              data: outliers.map(value => ({ x: value, y: 1 })),
+              backgroundColor: outliers.map(value => 
+                value > upperThreshold || value < lowerThreshold
+                  ? 'rgba(255, 99, 132, 0.5)'  // Red for outliers
+                  : 'rgba(0, 200, 200, 0.5)'   // Teal for normal values
+              ),
+              borderColor: 'rgba(0, 200, 200, 1)',
+              borderWidth: 1,
+              pointRadius: 6,
+              pointHoverRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                display: false,  // Hide Y axis since we only use it for visualization
+                beginAtZero: true
+              },
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toFixed(2);
+                  }
+                }
+              }
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const value = context.raw.x;
+                    const deviations = ((Math.abs(value - avg) / stdDev)).toFixed(1);
+                    return `Value: ${value.toFixed(2)} (${deviations}σ)`;
+                  }
+                }
+              },
+              annotation: {
+                annotations: {
+                  avgLine: {
+                    type: 'line',
+                    xMin: avg,
+                    xMax: avg,
+                    borderColor: 'rgba(255, 255, 255, 0.8)',
+                    borderWidth: 2,
+                    label: {
+                      content: 'Mean',
+                      enabled: true
+                    }
+                  },
+                  upperLine: {
+                    type: 'line',
+                    xMin: upperThreshold,
+                    xMax: upperThreshold,
+                    borderColor: 'rgba(255, 99, 132, 0.8)',
+                    borderWidth: 2,
+                    label: {
+                      content: '+3σ',
+                      enabled: true
+                    }
+                  },
+                  lowerLine: {
+                    type: 'line',
+                    xMin: lowerThreshold,
+                    xMax: lowerThreshold,
+                    borderColor: 'rgba(255, 99, 132, 0.8)',
+                    borderWidth: 2,
+                    label: {
+                      content: '-3σ',
+                      enabled: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+      })();
+    </script>
+  <% } else { %>
+    <div class="metric-card">
+      <div class="metric-value">-</div>
+      <div class="metric-label">No outlier analysis available</div>
+    </div>
+  <% } %>
+<% } else if (analysisType === 'patterns') { %>
+  <% if (data) { %>
+    <div class="patterns-analysis">
+      <!-- Frequency Patterns -->
+      <div class="pattern-section">
+        <h4>Most Common Values</h4>
+        <div class="metric-grid">
+          <% data.frequencies.slice(0, 5).forEach(freq => { %>
+            <div class="metric-card">
+              <div class="metric-value"><%= freq.count %></div>
+              <div class="metric-label">
+                <%= typeof freq._id === 'string' ? freq._id.substring(0, 20) : freq._id %>
+                <% if (typeof freq._id === 'string' && freq._id.length > 20) { %>...<%}%>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+
+      <!-- Pattern Categories -->
+      <div class="pattern-section">
+        <h4>Detected Patterns</h4>
+        <div class="metric-grid">
+          <% data.patterns.forEach(pattern => { %>
+            <div class="metric-card">
+              <div class="metric-value"><%= pattern.count %></div>
+              <div class="metric-label"><%= pattern._id %></div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <% if (data.analysis && data.analysis.insights) { %>
+        <div class="pattern-section">
+          <h4>Key Insights</h4>
+          <div class="insights-grid">
+            <% data.analysis.insights.forEach(insight => { %>
+              <div class="metric-card">
+                <div class="metric-label"><%= insight.type.toUpperCase() %></div>
+                <div class="metric-details"><%= insight.description %></div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Statistical Overview -->
+      <% if (data.ranges) { %>
+        <div class="pattern-section">
+          <h4>Statistical Overview</h4>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-value"><%= typeof data.ranges.min === 'number' ? data.ranges.min.toFixed(2) : data.ranges.min %></div>
+              <div class="metric-label">Minimum Value</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value"><%= typeof data.ranges.max === 'number' ? data.ranges.max.toFixed(2) : data.ranges.max %></div>
+              <div class="metric-label">Maximum Value</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value"><%= typeof data.ranges.avg === 'number' ? data.ranges.avg.toFixed(2) : data.ranges.avg %></div>
+              <div class="metric-label">Average Value</div>
+            </div>
+            <% if (data.ranges.stdDev) { %>
+              <div class="metric-card">
+                <div class="metric-value"><%= data.ranges.stdDev.toFixed(2) %></div>
+                <div class="metric-label">Standard Deviation</div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+  <% } else { %>
+    <div class="metric-card">
+      <div class="metric-value">-</div>
+      <div class="metric-label">No pattern analysis available</div>
+    </div>
+  <% } %>
+<% } %>

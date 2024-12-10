@@ -1,0 +1,101 @@
+<div class="chart-container">
+  <canvas id="timeSeriesChart"></canvas>
+</div>
+<script>
+  (() => {
+    const existingChart = Chart.getChart("timeSeriesChart");
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    setTimeout(() => {
+      new Chart(document.getElementById('timeSeriesChart'), {
+        type: 'line',
+        data: {
+          labels: <%- JSON.stringify(data.map(d => new Date(d.timestamp).toLocaleDateString())) %>,
+          datasets: [{
+            label: 'Count',
+            data: <%- JSON.stringify(data.map(d => d.count)) %>,
+            borderColor: '#00ffff',
+            backgroundColor: 'rgba(0, 255, 255, 0.2)',
+            borderWidth: 3,
+            tension: 0.1,
+            fill: true,
+            pointBackgroundColor: '#00ffff',
+            pointBorderColor: '#00ffff',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 300
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#ffffff',
+                font: {
+                  family: 'var(--font-mono)',
+                  size: 14,
+                  weight: 'bold'
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              borderColor: '#00ffff',
+              borderWidth: 1,
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              titleFont: {
+                family: 'var(--font-mono)',
+                size: 14,
+                weight: 'bold'
+              },
+              bodyFont: {
+                family: 'var(--font-mono)',
+                size: 13
+              },
+              padding: 12,
+              cornerRadius: 4
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+                lineWidth: 1
+              },
+              ticks: {
+                color: '#ffffff',
+                font: {
+                  family: 'var(--font-mono)',
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+                lineWidth: 1
+              },
+              ticks: {
+                color: '#ffffff',
+                font: {
+                  family: 'var(--font-mono)',
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        }
+      });
+    }, 0);
+  })();
+</script>

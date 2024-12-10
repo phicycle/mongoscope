@@ -1,0 +1,176 @@
+<!-- Time Series Analysis -->
+<div class="analysis-card">
+  <h3>Time Series Analysis</h3>
+  <select 
+    name="timeframe"
+    hx-get="/timeseries/<%= collection %>"
+    hx-target="#timeseries-chart"
+    hx-trigger="change"
+    hx-include="[name='startDate'],[name='endDate']"
+  >
+    <option value="hourly">Hourly</option>
+    <option value="daily">Daily</option>
+    <option value="monthly">Monthly</option>
+    <option value="yearly">Yearly</option>
+  </select>
+  
+  <div id="timeseries-chart">
+    <script>
+      (() => {
+        const url = `/timeseries/<%= collection %>?timeframe=daily&startDate=<%= startDate %>&endDate=<%= endDate %>`;
+        htmx.ajax('GET', url, {
+          target: '#timeseries-chart',
+          swap: 'innerHTML'
+        });
+      })();
+    </script>
+  </div>
+</div>
+
+<!-- Distribution Analysis -->
+<div class="analysis-card">
+  <h3>Field Distribution</h3>
+  <select 
+      id="field-select"
+      name="field"
+      hx-get="/distribution/<%= collection %>"
+      hx-target="#distribution-chart"
+      hx-trigger="change"
+      hx-include="[name='startDate'],[name='endDate'],[name='timeframe']"
+  >
+      <option value="">Select Field</option>
+      <% fields.forEach(function(field) { %>
+          <option value="<%= field %>"><%= field %></option>
+      <% }); %>
+  </select>
+  
+  <div id="distribution-chart">
+      <!-- Will be populated when field is selected -->
+  </div>
+</div>
+
+<!-- Advanced Analytics -->
+<div class="analysis-card">
+  <h3>Advanced Field Analytics</h3>
+  <div class="analytics-controls">
+    <select 
+      id="advanced-field-select"
+      name="advancedField"
+      hx-get="/advanced-analytics/<%= collection %>"
+      hx-target="#advanced-analytics-content"
+      hx-trigger="change"
+      hx-include="[name='analysisType'],[name='secondaryField']"
+      hx-vals='{"startDate": "<%= startDate %>", "endDate": "<%= endDate %>", "timeframe": "<%= timeframe %>"}'
+    >
+      <option value="">Select Field</option>
+      <% fields.forEach(function(field) { %>
+        <option value="<%= field %>"><%= field %></option>
+      <% }); %>
+    </select>
+
+    <select 
+      id="analysisType"
+      name="analysisType"
+      hx-get="/advanced-analytics/<%= collection %>"
+      hx-target="#advanced-analytics-content"
+      hx-trigger="change"
+      hx-include="[name='advancedField'],[name='secondaryField']"
+      hx-vals='{"startDate": "<%= startDate %>", "endDate": "<%= endDate %>", "timeframe": "<%= timeframe %>"}'
+      onchange="toggleSecondaryField(this.value)"
+    >
+      <option value="percentiles">Percentiles</option>
+      <option value="temporal">Temporal Patterns</option>
+      <option value="outliers">Outlier Detection</option>
+      <option value="patterns">Pattern Analysis</option>
+      <option value="quality">Data Quality</option>
+      <option value="growth">Growth Rate</option>
+    </select>
+
+    <select 
+      id="secondaryField"
+      name="secondaryField"
+      hx-get="/advanced-analytics/<%= collection %>"
+      hx-target="#advanced-analytics-content"
+      hx-trigger="change"
+      hx-include="[name='advancedField'],[name='analysisType']"
+      hx-vals='{"startDate": "<%= startDate %>", "endDate": "<%= endDate %>", "timeframe": "<%= timeframe %>"}'
+      style="display: none;"
+    >
+      <option value="">Select Secondary Field</option>
+      <% fields.forEach(function(field) { %>
+        <option value="<%= field %>"><%= field %></option>
+      <% }); %>
+    </select>
+  </div>
+  
+  <div id="advanced-analytics-content">
+    <!-- Will be populated when analysis is selected -->
+  </div>
+</div>
+
+<!-- Add script to preserve field selection and handle date updates -->
+<script>
+
+  document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'analytics-content') {
+      const fieldSelect = document.getElementById('field-select');
+      const selectedField = localStorage.getItem('selectedField');
+      if (selectedField && fieldSelect) {
+        fieldSelect.value = selectedField;
+        // Trigger the distribution update if a field was selected
+        if (selectedField !== '') {
+          const startDate = '<%= startDate %>';
+          const endDate = '<%= endDate %>';
+     
+          htmx.ajax('GET', `/distribution/<%= collection %>?field=${selectedField}&startDate=${startDate}&endDate=${endDate}&timeframe=<%= timeframe %>`, {
+            target: '#distribution-chart',
+            swap: 'innerHTML'
+          });
+        }
+      }
+    }
+  });
+
+  // Store field selection when it changes
+  document.getElementById('field-select').addEventListener('change', function(evt) {
+    localStorage.setItem('selectedField', evt.target.value);
+  });
+
+  function toggleSecondaryField(analysisType) {
+    const secondaryField = document.getElementById('secondaryField');
+    if (analysisType === 'correlation') {
+      secondaryField.style.display = 'inline-block';
+      secondaryField.required = true;
+    } else {
+      secondaryField.style.display = 'none';
+      secondaryField.required = false;
+      secondaryField.value = '';
+    }
+  }
+
+  // Initialize the visibility state
+  document.addEventListener('DOMContentLoaded', function() {
+    const analysisType = document.getElementById('analysisType').value;
+    toggleSecondaryField(analysisType);
+  });
+
+  // Prevent HTMX request if correlation is selected but no secondary field
+  document.getElementById('advanced-field-select').addEventListener('htmx:beforeRequest', function(evt) {
+    const analysisType = document.getElementById('analysisType').value;
+    const secondaryField = document.getElementById('secondaryField');
+    
+    if (analysisType === 'correlation' && !secondaryField.value) {
+      evt.preventDefault();
+    }
+  });
+
+  // Same check for analysis type changes
+  document.getElementById('analysisType').addEventListener('htmx:beforeRequest', function(evt) {
+    const analysisType = evt.target.value;
+    const secondaryField = document.getElementById('secondaryField');
+    
+    if (analysisType === 'correlation' && !secondaryField.value) {
+      evt.preventDefault();
+    }
+  });
+</script>
