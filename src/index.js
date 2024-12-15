@@ -8,7 +8,11 @@ class AnalyticsDashboard {
       port: config.port || 3000,
       ...config
     };
-    
+
+    if (!this.config.mongoUrl) {
+      throw new Error('MongoDB connection string is required');
+    }
+
     this.analyzer = new MongoAnalytics(this.config);
     this.server = new UIServer(this.analyzer, this.config);
   }
@@ -16,7 +20,7 @@ class AnalyticsDashboard {
   async start() {
     await this.analyzer.connect();
     await this.server.start();
-    console.log(`Analytics dashboard running on http://localhost:${this.config.port}`);
+    console.log(`MongoScope running on http://localhost:${this.config.port}`);
   }
 
   async stop() {

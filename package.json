@@ -1,18 +1,43 @@
 {
-  "name": "mongodb-analytics",
+  "name": "mongoscope",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple, lightweight MongoDB analytics dashboard",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js"
   },
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "mongodb",
+    "analytics",
+    "visualization",
+    "database",
+    "monitoring",
+    "dashboard"
+  ],
+  "author": "Suyash Thakur",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suyash-thakur/mongoscope.git"
+  },
+  "bugs": {
+    "url": "https://github.com/suyash-thakur/mongoscope/issues"
+  },
   "dependencies": {
     "dayjs": "^1.11.13",
     "ejs": "^3.1.10",
     "express": "^4.21.1",
     "htmx.org": "^1.9.12",
     "mongodb": "^6.10.0"
-  }
+  },
+  "files": [
+    "src",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "types": "./types/index.d.ts"
 }
