@@ -16,7 +16,7 @@ class UIServer {
     this.app.use(express.static(path.join(__dirname, 'public')));
     
     // Serve HTMX from node_modules
-    this.app.use('/htmx', express.static(path.join(__dirname, '../../node_modules/htmx.org/dist')));
+    this.app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org')))); 
     
     this.setupRoutes();
   }
